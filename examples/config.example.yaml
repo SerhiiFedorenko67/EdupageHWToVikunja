@@ -1,0 +1,39 @@
+# Example EdupageTasks configuration. Secrets are pulled from the environment:
+# copy this file to config.yaml and set
+# the ${...} variables, e.g. in a systemd EnvironmentFile or your shell.
+edupage:
+  subdomain: gymnas                     # https://{subdomain}.edupage.org
+  auth:
+    mode: password                      # password | session (see docs/application.md §12)
+    username: ${EDUPAGE_USERNAME}
+    password: ${EDUPAGE_PASSWORD}       # required for mode: password
+    session_id: ${EDUPAGE_SESSION_ID}   # only used for mode: session
+  window_days: 30                       # look-back window (close path is gated on coverage)
+  include_types: [homework, testpridelenie, etesthw]
+  timezone: Europe/Bratislava
+  child_person_id: null                 # parent accounts: student id for switchchild
+
+vikunja:
+  base_url: http://100.119.216.58:3456/api/v2
+  token: ${VIKUNJA_API_TOKEN}           # tk_... scoped to write on the project
+  project: 12                           # numeric id preferred; exact title also accepted
+  create_project: false                 # create if missing (needs admin)
+  markdown: true                        # exchange rich text as Markdown
+  labels: []                            # optional extra labels attached to synced tasks
+  subject_labels: true                  # auto-create a label such as `PRO` per subject
+  priority_rule: null                   # null | {overdue: 3, due_within_days: 2}
+  default_bucket: null                  # bucket title or (preferred) numeric id
+
+sync:
+  cadence_minutes: 30                   # used by the daemon runner
+  dry_run: false                        # plan-only; prints what would change
+  mirror_done: false                    # mirror EduPage done-state to Vikunja `done`
+  delete_policy: close                  # close | leave | delete
+  grace_days: 7                         # close only when due-date past + grace
+  retry_max: 4
+  retry_backoff_s: 1
+  breaker_threshold: 5                  # consecutive transient failures before pausing
+  log_level: info
+  log_file: null                        # null = stderr
+  lock_file: null                       # null = .edupagetasks.lock beside this config
+  notify_url: ""                        # optional healthchecks.io / ntfy.sh / webhook for failures

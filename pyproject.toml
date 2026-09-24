@@ -1,0 +1,25 @@
+[project]
+name = "edupagetasks"
+version = "0.1.0"
+description = "EduPage homework -> Vikunja task forwarder (idempotent sync)"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.14"
+dependencies = [
+    "requests>=2.32",
+    "pyyaml>=6.0",
+    "markdownify>=0.13",
+]
+
+[project.scripts]
+edupagetasks = "edupagetasks.__main__:main"
+
+[build-system]
+requires = ["uv_build>=0.12.9,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-mock>=3", "ruff>=0.9"]
+
+[tool.uv]
+package = true

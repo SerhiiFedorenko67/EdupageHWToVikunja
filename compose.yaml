@@ -1,0 +1,19 @@
+services:
+  edupagetasks:
+    build: .
+    image: edupagetasks:local
+    user: "${PUID:-1000}:${PGID:-1000}"
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      EDUPAGE_USERNAME: ${EDUPAGE_USERNAME:-}
+      EDUPAGE_PASSWORD: ${EDUPAGE_PASSWORD:-}
+      EDUPAGE_SESSION_ID: ${EDUPAGE_SESSION_ID:-}
+      VIKUNJA_API_TOKEN: ${VIKUNJA_API_TOKEN:-}
+    volumes:
+      - ./data:/data
+      - ./config.yaml:/data/config.yaml:ro
+    restart: unless-stopped
+    stop_grace_period: 2m
