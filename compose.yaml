@@ -1,7 +1,6 @@
 services:
   edupagetasks:
-    build: .
-    image: edupagetasks:local
+    build: https://github.com/SerhiiFedorenko67/EdupageHWToVikunja.git#main
     user: "${PUID:-1000}:${PGID:-1000}"
     init: true
     read_only: true

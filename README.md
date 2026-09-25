@@ -3,6 +3,9 @@
 Forward homework from an **EduPage** account into a **Vikunja** project as
 tasks, idempotently and unattended (one-way: EduPage → Vikunja).
 
+> **Warning:** This project was fully vibecoded. Review and test it carefully
+> before relying on it with real accounts or data.
+
 - Design/architecture: [`docs/application.md`](docs/application.md)
 - EduPage wire protocol: [`docs/edupage-api.md`](docs/edupage-api.md)
 - Vikunja v2 API notes: [`docs/vikunja-api.md`](docs/vikunja-api.md)
@@ -69,9 +72,12 @@ action, such as `patch_done`, does not write.
 
 ## Docker deployment
 
-Copy this repository to the server. Put your real `config.yaml` in its root;
-it is mounted read-only and excluded from the image. The server must be able to
-reach both EduPage and the URL in `vikunja.base_url` **from the container**.
+Copy `compose.yaml` to a directory on the server and put your real
+`config.yaml` beside it. Compose builds the image from the `main` branch of
+the GitHub repository; the config is mounted read-only and excluded from the
+image. The repository must be reachable from the server during the build. The
+server must also be able to reach EduPage and the URL in `vikunja.base_url`
+**from the container**.
 If Vikunja runs on the same server, `localhost` in the config points to this
 container, so use an address the container can reach.
 
@@ -105,7 +111,8 @@ docker compose logs -f edupagetasks
 
 The daemon syncs every `sync.cadence_minutes` and restarts after a server
 reboot. `docker compose down` stops it without deleting `data/`. After a code
-update, run `docker compose up -d --build`. No inbound port is required.
+update from GitHub, run `docker compose up -d --build`. No inbound port is
+required.
 
 ## Operational limits
 
