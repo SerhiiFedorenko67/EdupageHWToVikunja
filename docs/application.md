@@ -183,17 +183,22 @@ in the description when truncation or additional lines would hide content.
 <full title if the task title was shortened>
 <body: HTML→Markdown, trimmed, sanitised>
 <blank>
-[Open in EduPage](https://SUBDOMAIN.edupage.org/timeline/?timelineid=NNN#item-NNN)
+[Open in EduPage](https://SUBDOMAIN.edupage.org/elearning/?eqa=...)
 <!-- edupage-key:USERID:NNN -->
 ```
+
+For a timeline item with `data.superid`, request the e-learning result data to
+resolve its `testid`, `planid`, and `etestType`, then encode the direct
+`/elearning/?eqa=...` URL. A plain homework item without an e-learning material
+uses the timeline URL as a fallback.
 
 The account-specific HTML-comment marker lets reconciliation identify a task
 without a visible technical label. Legacy `edu:{userid}:{timelineid}` labels
 are still recognized for migration. Matching title or body text alone never
 establishes identity.
 
-What gets fingerprinted (§6) are the **raw EduPage fields** (`text`, current title, due date,
-author, subject id) — not the rendered title/description. Subject short names from `dbi` and
+What gets fingerprinted (§6) are the **EduPage source fields** (`text`, current title, due date,
+author, subject id, and a resolved direct link when available) — not the rendered title/description. Subject short names from `dbi` and
 timezone-rendered timestamps are excluded, so a `dbi` edit or a DST/timezone change never triggers a
 spurious PATCH.
 
@@ -216,7 +221,8 @@ key = (edu_userid, timelineid)
 key:                  (edu_userid, timelineid)  PK   (timelineid is unique per account → no year in key)
 vikunja_task_id:      int|null     (null while `creating` / a never-created `deferred`)
 vikunja_project_id:   int          (guard — §11 treats a mismatched project as task-gone)
-content_fingerprint:  sha256 of RAW source fields (text, title, due date, author, subject id)
+content_fingerprint:  sha256 of source fields (text, title, due date, author, subject id,
+                                   direct link when available)
                                    — NOT rendered output, and NOT done state
 done_state:           bool         (EduPage's last seen done flag — diffed separately)
 school_year:          int          (dp.year at last observation — reporting + rollover continuity only)

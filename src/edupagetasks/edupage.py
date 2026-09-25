@@ -15,11 +15,17 @@ import time
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any
+from urllib.parse import quote, urlencode
 
 import requests
 
 from edupagetasks.config import EduPageConfig
-from edupagetasks.encoding import chromium_b64decode, decode_request_body, eqap_encode
+from edupagetasks.encoding import (
+    chromium_b64decode,
+    chromium_b64encode,
+    decode_request_body,
+    eqap_encode,
+)
 from edupagetasks.models import HomeworkItem
 
 logger = logging.getLogger(__name__)
@@ -69,6 +75,7 @@ class EduPageClient:
         self.cfg = cfg
         self.timeout = timeout
         self.session = requests.Session()
+        self._elearning_data: dict[str, tuple[str | None, str | None, str | None] | None] = {}
 
     @property
     def _host(self) -> str:
@@ -93,6 +100,7 @@ class EduPageClient:
         return resp
 
     def connect(self) -> LoginState:
+        self._elearning_data.clear()
         if self.cfg.auth.mode == "session":
             return self._connect_session()
         return self._connect_password()
@@ -536,7 +544,94 @@ class EduPageClient:
             subject_short=self._subject_short(state.dbi, subject_id),
             removed=removed,
             done=bool(props.get("doneMaxCas")),
+            material_superid=(
+                self._positive_id(data.get("superid")) if isinstance(data, dict) else None
+            ),
+            material_planid=(
+                self._positive_id(data.get("planid")) if isinstance(data, dict) else None
+            ),
         )
+
+    @staticmethod
+    def _positive_id(value: Any) -> str | None:
+        if isinstance(value, bool) or not isinstance(value, (str, int)):
+            return None
+        candidate = str(value).strip()
+        if re.fullmatch(r"[0-9]+", candidate) and candidate.strip("0"):
+            return candidate
+        return None
+
+    @staticmethod
+    def _etest_type(value: Any) -> str | None:
+        if isinstance(value, bool) or not isinstance(value, (str, int)):
+            return None
+        candidate = str(value).strip()
+        return candidate if re.fullmatch(r"[0-9]+", candidate) else None
+
+    def resolve_links(self, items: list[HomeworkItem]) -> None:
+        """Resolve direct links only for items selected by the sync window."""
+        for item in items:
+            if not item.removed and item.material_superid:
+                item.source_url = self._elearning_url(
+                    item.material_superid, item.material_planid
+                )
+
+    def _elearning_url(self, superid: str, item_planid: str | None) -> str | None:
+        if superid not in self._elearning_data:
+            response = self._request(
+                "POST",
+                self._url("/elearning/?cmd=EtestCreator&akcia=getResultsData"),
+                data=eqap_encode(decode_request_body({"superid": superid})),
+            )
+            try:
+                result = self._decode_payload(response.text)
+            except (json.JSONDecodeError, ValueError) as exc:
+                raise EduPageTransientError(
+                    f"unreadable e-learning result for superid {superid}"
+                ) from exc
+            if not isinstance(result, dict):
+                raise EduPageTransientError(
+                    f"malformed e-learning result for superid {superid}"
+                )
+            if self._positive_id(result.get("superid")) != superid:
+                logger.warning("e-learning result has no matching superid %s", superid)
+                self._elearning_data[superid] = None
+            else:
+                results_data = result.get("resultsData")
+                if not isinstance(results_data, dict):
+                    results_data = {}
+                self._elearning_data[superid] = (
+                    self._positive_id(result.get("testid"))
+                    or self._positive_id(results_data.get("testid")),
+                    self._positive_id(results_data.get("planid")),
+                    self._etest_type(result.get("etestType"))
+                    or self._etest_type(results_data.get("etestType")),
+                )
+
+        link_data = self._elearning_data[superid]
+        if link_data is None:
+            return None
+        testid, result_planid, etest_type = link_data
+        planid = result_planid or item_planid
+        if not (planid and testid and etest_type):
+            logger.debug("e-learning result lacks link fields for superid %s", superid)
+            return None
+
+        parameters = urlencode(
+            (
+                ("cmd", "ETestCreator"),
+                ("planid", planid),
+                ("testid", testid),
+                ("superid", superid),
+                ("cspohladStart", "tests"),
+                ("pohlad", "results:overview"),
+                ("etestType", etest_type),
+                ("edit", ""),
+            ),
+            quote_via=quote,
+        )
+        eqa = quote(chromium_b64encode(parameters.encode("ascii")), safe="")
+        return self._url(f"/elearning/?eqa={eqa}")
 
     @staticmethod
     def _parse_item_data(raw: dict) -> Any:

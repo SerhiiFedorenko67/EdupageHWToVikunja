@@ -21,9 +21,9 @@ class SyncState(StrEnum):
 class HomeworkItem:
     """A single EduPage timeline item of a homework-ish type.
 
-    The fingerprint is computed from the *raw* source fields only
-    (text, title, due date, author, subject id) -- never from the
-    rendered title/description and never from the done state.
+    The fingerprint is computed from the source fields (text, title, due
+    date, author, subject id, and a resolved EduPage link when present) --
+    never from the rendered title/description or the done state.
     """
 
     timelineid: int
@@ -37,18 +37,23 @@ class HomeworkItem:
     subject_short: str | None  # resolved from dbi tables, may be filled later
     removed: bool
     done: bool  # doneMaxCas observed in userProps
+    source_url: str | None = None  # direct e-learning URL when EduPage exposes a material
+    material_superid: str | None = None  # source IDs used to resolve the direct URL
+    material_planid: str | None = None
 
     def content_fingerprint(self) -> str:
-        raw = "\x1f".join(
-            str(x)
-            for x in (
-                self.text or "",
-                self.title or "",
-                self.due_date or "",
-                self.author or "",
-                self.subject_id or "",
-            )
+        fields = (
+            self.text or "",
+            self.title or "",
+            self.due_date or "",
+            self.author or "",
+            self.subject_id or "",
         )
+        # Preserve the old fingerprint for plain homework. Existing tasks with
+        # a newly resolved direct link will get a PATCH on the next sync.
+        if self.source_url:
+            fields += (self.source_url,)
+        raw = "\x1f".join(fields)
         return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 

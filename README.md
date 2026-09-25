@@ -70,6 +70,10 @@ title, source dates and done state, configured labels/priority/bucket, and
 rendered description. A rendered preview may include fields that a specific
 action, such as `patch_done`, does not write.
 
+For homework backed by an EduPage e-learning material, the description links
+directly to its e-learning results view. Other homework uses a timeline link.
+The direct link requires an EduPage login in the browser.
+
 ## Docker deployment
 
 Copy `compose.yaml` to a directory on the server and put your real

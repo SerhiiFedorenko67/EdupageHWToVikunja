@@ -39,10 +39,11 @@ def build_description(
     body = html_to_markdown(item.text)
     if body:
         parts.append(body)
-    parts.append(
-        f"[Open in EduPage](https://{subdomain}.edupage.org/timeline/"
-        f"?timelineid={item.timelineid}#item-{item.timelineid})"
+    source_url = item.source_url or (
+        f"https://{subdomain}.edupage.org/timeline/"
+        f"?timelineid={item.timelineid}#item-{item.timelineid}"
     )
+    parts.append(f"[Open in EduPage]({source_url})")
     parts.append(build_sync_marker(userid, item.timelineid))
     return "\n\n".join(parts)
 

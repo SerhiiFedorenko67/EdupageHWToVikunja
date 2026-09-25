@@ -84,7 +84,8 @@ POST JSON `{"__args": [null, <args>], "__gsh": <gsec_hash>}` to `https://{subdom
 
 | Endpoint | Method/params | Returns |
 | --- | --- | --- |
-| `/timeline/` `?module=todo&akcia=getData&filterTab=messages` | `POST`, form `datefrom=YYYY-MM-DD` (note: the client sends `filterTab` twice — once empty, once `messages`) | JSON `timelineItems` + `timelineUserProps` (notification **history**); when `timelineUserProps` is absent the client falls back to the login payload's `userProps` |
+| `/timeline/` `?module=todo&akcia=getData&filterTab=messages` | `POST`, form `datefrom=YYYY-MM-DD` (note: the client sends `filterTab` twice — once empty, once `messages`) | JSON `timelineItems` + `timelineUserProps` (notification **history**) and a separate `homeworks` list; when `timelineUserProps` is absent the client falls back to the login payload's `userProps` |
+| `/elearning/?cmd=EtestCreator&akcia=getResultsData` | `POST`, `eqap`-encoded form `{superid: N}` | JSON containing `superid`, `testid`, `etestType`, and `resultsData.planid`; read-only assignment detail lookup |
 | `/timeline/?=&akcia=createItem&eqav=1&maxEqav=7` | eqap-encoded `{selectedUser, text, attachements, receipt, typ:"sprava"}` | decoded JSON `changes[0].timelineid` (sends message) |
 | `/timeline/?akcia=uploadAtt` | file upload | attachment (also used for cloud uploads) |
 | `/znamky/` | `GET` | grades HTML/JS to parse (`.znamkyStudentViewer(` JSON) |
@@ -99,6 +100,7 @@ POST JSON `{"__args": [null, <args>], "__gsh": <gsec_hash>}` to `https://{subdom
 - Person detection: `numberinclass` present → Student; `classroomid` present → Teacher; else Parent. Recipient id strings: `Student{id}`, `Teacher{id}`, `StudentOnly{id}`, `Rodic{id}`.
 - Timeline event fields: `timelineid`, `typ` (event type, e.g. `homework`, `sprava` (message), `znamka` (grade), `testpridelenie`…), `timestamp` (`YYYY-MM-DD HH:MM:SS`), `text`, `data` (JSON string with detail, e.g. `messageContent`, `nazov`, and — for homework — `oldVals`), `user_meno` / `vlastnik_meno` (recipient/author display names; the special value `"Celá škola"`/"*" = everyone is honoured for the **recipient** side; the author branch only special-cases `*`), `pocet_reakcii`, `cas_pridania`, `removed`.
 - Live homework records use `data.nazov` for the current title, `data.date` for the due date (`YYYY-MM-DD`), and `data.predmetid` for the subject id; `oldVals` is a fallback. Assigned-test records may have `data.parametre.predmetid`. A `data.planid` can also resolve through `dbi.plans[planid].predmetid`, then `dbi.subjects` supplies the short name.
+- Some timeline homework records include `data.superid` and `data.planid`, but no `testid` or direct URL. `getResultsData` resolves the missing ID. An e-learning URL encodes `cmd=ETestCreator`, `planid`, `testid`, `superid`, `cspohladStart=tests`, `pohlad=results:overview`, `etestType`, and `edit=` as a base64 `eqa` query value. The URL requires an authenticated EduPage session. Plain homework without `superid` keeps the timeline fallback.
 - The author (**`vlastnik_meno`**) is available and is resolved to an account by the client.
 - `userProps[timelineid]` per-user state: `starred` (`"1"`), `doneMaxCas` (done timestamp, set => homework done).
 - **Homework event type is `typ == "homework"`** (`EventType.HOMEWORK`). Do NOT use `h_homework` — that is a different, unrelated "helper" enum value (`EventType.H_HOMEWORK`), not a homework event. The client filters homework with `EventType.HOMEWORK` (value `"homework"`).

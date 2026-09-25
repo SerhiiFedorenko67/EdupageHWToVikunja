@@ -51,6 +51,7 @@ _ITEM_FIELDS = (
     "subject_short",
     "removed",
     "done",
+    "source_url",
 )
 
 _RESTORE_BY_ACTION = {
@@ -219,6 +220,9 @@ class SyncEngine:
             items = self.edupage.homework_items(state, include_types=cfg.include_types)
             covered_ok = False
         items = [item for item in items if self._in_window(item, window_start)]
+        resolver = getattr(self.edupage, "resolve_links", None)
+        if resolver is not None:
+            resolver(items)
         if not dry_run:
             self.store.set_meta(_META_COVERED_FROM, coverage_from.isoformat())
             self.store.set_meta(_META_COVERED_TO, coverage_to.isoformat())
@@ -361,6 +365,11 @@ class SyncEngine:
                     (old_title is not None and remote.title == old_title)
                     or extract_sync_key(remote.description or "") != (self.userid, tid)
                     or any(line.startswith(old_fields) for line in old_description_lines)
+                    or (
+                        item.source_url is not None
+                        and f"[Open in EduPage]({item.source_url})"
+                        not in (remote.description or "")
+                    )
                 )
             )
             if format_drift and not any(
@@ -1091,7 +1100,8 @@ class SyncEngine:
 
     @staticmethod
     def _item_from_fields(data: dict) -> HomeworkItem:
-        return HomeworkItem(**{key: data[key] for key in _ITEM_FIELDS})
+        # Queued operations from older versions have no source_url field.
+        return HomeworkItem(**{key: data[key] for key in _ITEM_FIELDS if key in data})
 
     @staticmethod
     def _aware(now: datetime | None) -> datetime:
