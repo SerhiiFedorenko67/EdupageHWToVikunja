@@ -499,8 +499,9 @@ that the run passed the coverage check (§6 fetch) — a partial or empty fetch 
   each child is a distinct namespace. Child B can never overwrite child A's mapping. (If two children
   must sync, use one project per child.)
 - Same `timelineid` across students → the account id in the hidden marker distinguishes them.
-- Vikunja description edited by a human → a removed marker is restored for identity; other human
-  edits are left alone until a source change requires a content patch.
+- Vikunja description edited by a human → other human edits are left alone until a source change
+  requires a content patch. Some Vikunja installations strip the hidden marker from Markdown;
+  the state DB remains authoritative for already mapped tasks.
 - Task deleted in Vikunja (human/other client) → reconcile prunes the row; item is re-created (§6/§11).
 - Wiped state DB → reconciliation rebuilds identity from account-specific description markers or
   legacy anchors. Tasks missing both cannot be adopted safely (§6).

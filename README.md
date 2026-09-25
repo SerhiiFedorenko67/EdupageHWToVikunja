@@ -120,11 +120,10 @@ required.
 
 ## Operational limits
 
-- Recovery uses the hidden account-specific `edupage-key` marker in the task
-  description. Legacy `edu:{userid}:{timelineid}` labels are recognized and
-  removed during migration. If Vikunja strips the marker and local state is
-  lost, a retry can create a duplicate; marker round-trip behavior still needs
-  confirmation on a real created task.
+- Vikunja strips the hidden account-specific `edupage-key` comment from task
+  descriptions in this deployment. Keep and back up `state.db`: without it,
+  existing tasks cannot be identified reliably and a retry can create duplicates.
+  Legacy `edu:{userid}:{timelineid}` labels are recognized during migration.
 - Label sync is additive: removing a configured label does not detach it from
   existing tasks.
 - EduPage history responses do not signal completeness. A successful history

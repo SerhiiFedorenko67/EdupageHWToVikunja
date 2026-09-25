@@ -24,7 +24,6 @@ from edupagetasks.render import (
     build_anchor_label,
     build_description,
     build_title,
-    extract_sync_key,
     subject_label,
 )
 from edupagetasks.state import StateStore
@@ -360,10 +359,11 @@ class SyncEngine:
                  if line.strip()][:5]
                 if remote else []
             )
+            # Vikunja strips HTML comments from Markdown descriptions. The
+            # mapped task must not be patched just because its marker vanished.
             format_drift = bool(
                 remote and (
                     (old_title is not None and remote.title == old_title)
-                    or extract_sync_key(remote.description or "") != (self.userid, tid)
                     or any(line.startswith(old_fields) for line in old_description_lines)
                     or (
                         item.source_url is not None
